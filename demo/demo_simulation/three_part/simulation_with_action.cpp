@@ -47,7 +47,7 @@ auto SimulationWithAction::prepareNrt() -> void {
   // random generator
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_real_distribution<double> uniform(0.9, 1.1);
+  double random_coefficient;
   for (const auto& cmd_param : cmdParams()) {
     if (cmd_param.first == "action") {
       par.motors_f.clear();
@@ -75,10 +75,15 @@ auto SimulationWithAction::prepareNrt() -> void {
       position.resize(
           model()->motionPool().size() + model()->jointPool().size(), 0.0);
       auto temp = matrixParam(cmd_param.first);
-      if (temp.size() == 1)
+      if (temp.size() == 1) {
         std::fill(position.begin(), position.end(), temp.toDouble());
-      else 
+      } else {
         std::copy(temp.begin(), temp.end(), position.begin());
+      }
+
+    } else if (cmd_param.first == "random_coefficient") {
+      random_coefficient = doubleParam(cmd_param.first);
+      std::cout << "random coefficient: " << random_coefficient << std::endl;
     }
   }
   // reset
@@ -92,6 +97,7 @@ auto SimulationWithAction::prepareNrt() -> void {
 
     // dynamics randomization
     if (reset_flag == 2) {
+      std::uniform_real_distribution<double> uniform(1 - random_coefficient, 1 + random_coefficient);  
       for (std::size_t i = 1; i < model()->partPool().size(); ++i) {
         const double* inertial = model()->partPool().at(i).prtIv();
         // print
@@ -111,7 +117,7 @@ auto SimulationWithAction::prepareNrt() -> void {
         for (int i = 0; i < 10; i++) {
           std::cout << inertial[i] << " ";
         }
-        std::cout << std::endl << std::endl;
+        std::cout << std::endl;
       }
     }
 
@@ -202,6 +208,7 @@ SimulationWithAction::SimulationWithAction(const std::string& name)
       "	 <Param name=\"reset\" abbreviation=\"r\" default=\"0\"/>"
       "	 <Param name=\"delay\" abbreviation=\"d\" default=\"0\"/>"
       "  <Param name=\"position\" abbreviation=\"p\" default=\"{0,0}\"/>"
+      "  <Param name=\"random_coefficient\" abbreviation=\"c\" default=\"0.1\"/>"
       "	</GroupParam>"
       "</Command>");
 }
